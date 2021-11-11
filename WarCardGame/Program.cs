@@ -20,7 +20,7 @@ namespace WarCardGame
 
       var alphaPlayerScoreAfterGame = alphaCards.Zip(betaCards, (x, y) => BattleScore(x, y, trump)).Sum();
 
-      ShowCardPairs(alphaCards.Zip(betaCards, (x, y) => (x, y)).ToList());
+      ShowCardPairs(alphaCards.Zip(betaCards, (x, y) => (x, y)));
 
       if (alphaPlayerScoreAfterGame > playerHandSize) Console.WriteLine($"Alpha player won with {alphaPlayerScoreAfterGame} points");
       else if (alphaPlayerScoreAfterGame < playerHandSize) Console.WriteLine($"Beta player won with {playerHandSize * 2 - alphaPlayerScoreAfterGame} points");
@@ -76,7 +76,7 @@ namespace WarCardGame
       return fullDeck;
     }
 
-    static void ShowCardPairs(List<(Card x, Card y)> pairs)
+    static void ShowCardPairs(IEnumerable<(Card x, Card y)> pairs)
     {
       foreach (var pair in pairs)
       {
