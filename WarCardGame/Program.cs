@@ -1,7 +1,6 @@
 ﻿using System;
 using LanguageExt;
 using System.Linq;
-using System.Collections.Generic;
 
 namespace WarCardGame
 {
@@ -20,8 +19,6 @@ namespace WarCardGame
 
       var alphaPlayerScoreAfterGame = alphaCards.Zip(betaCards, (x, y) => BattleScore(x, y, trump)).Sum();
 
-      ShowCardPairs(alphaCards.Zip(betaCards, (x, y) => (x, y)));
-
       if (alphaPlayerScoreAfterGame > playerHandSize) Console.WriteLine($"Alpha player won with {alphaPlayerScoreAfterGame} points");
       else if (alphaPlayerScoreAfterGame < playerHandSize) Console.WriteLine($"Beta player won with {playerHandSize * 2 - alphaPlayerScoreAfterGame} points");
       else Console.WriteLine("Game was a tie");
@@ -29,6 +26,7 @@ namespace WarCardGame
 
     static int BattleScore(Card x, Card y, CardSign trump)
     {
+      ShowCardPair(x, y);
       if (x.sign == trump && y.sign != trump || x.strength > y.strength && y.sign != trump) return 2;
       if (x.strength == y.strength && y.sign != trump) return 1;
       return 0;
@@ -63,25 +61,23 @@ namespace WarCardGame
 
     static Arr<Card> GenerateCards()
     {
-      Arr<Card> fullDeck = new Arr<Card>(new Card[0]);
+      Arr<CardStrength> allCardStrengths = (Arr<CardStrength>)Enum.GetValues(typeof(CardStrength));
+      Arr<CardSign> allCardSigns = (Arr<CardSign>)Enum.GetValues(typeof(CardSign));
 
-      foreach (CardSign sign in Enum.GetValues(typeof(CardSign)))
-      {
-        foreach (CardStrength strength in Enum.GetValues(typeof(CardStrength)))
-        {
-          fullDeck = fullDeck.Add(new Card(strength, sign));
-        }
-      }
+      //method syntax
+      Arr<Card> fullDeckMethod = allCardStrengths.SelectMany(strength => allCardSigns.Select(sign => new Card(strength, sign)));
 
-      return fullDeck;
+      //query syntax
+      Arr<Card> fullDeckQuery = (from strength in allCardStrengths
+                             from sign in allCardSigns
+                             select new Card(strength, sign));
+
+      return fullDeckMethod;
     }
 
-    static void ShowCardPairs(IEnumerable<(Card x, Card y)> pairs)
+    static void ShowCardPair(Card x, Card y)
     {
-      foreach (var pair in pairs)
-      {
-        Console.WriteLine(pair.x.strength + " of " + pair.x.sign + " vs " + pair.y.strength + " of " + pair.y.sign);
-      }
+      Console.WriteLine($"{x.strength} of {x.sign} vs {y.strength} of {y.sign}");
     }
   }
 }
