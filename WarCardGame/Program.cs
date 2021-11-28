@@ -13,7 +13,7 @@ namespace WarCardGame
       Arr<CardSign> allCardSigns = (Arr<CardSign>)Enum.GetValues(typeof(CardSign));
       CardSign trump = CardSign.Spades;
 
-      var schuffledDeck = GenerateCards(allCardStrengths, allCardSigns).Match(
+      var game = GenerateCards(allCardStrengths, allCardSigns).Match(
         Left => Console.WriteLine(Left),
         Right => WinCondition(Right.OrderBy(a => rng.Next())
                 .ToArr()
