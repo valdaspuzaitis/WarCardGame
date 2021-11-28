@@ -9,16 +9,24 @@ namespace WarCardGame
     static void Main(string[] args)
     {
       Random rng = new Random();
-      Arr<Card> schuffledDeck = GenerateCards().OrderBy(a => rng.Next()).ToArr();
-
-      int playerHandSize = schuffledDeck.Length / 2;
-
-      Arr<Card> alphaCards = schuffledDeck.RemoveRange(0, playerHandSize);
-      Arr<Card> betaCards = schuffledDeck.RemoveRange(playerHandSize, playerHandSize);
+      Arr<CardStrength> allCardStrengths = (Arr<CardStrength>)Enum.GetValues(typeof(CardStrength));
+      Arr<CardSign> allCardSigns = (Arr<CardSign>)Enum.GetValues(typeof(CardSign));
       CardSign trump = CardSign.Spades;
 
-      var alphaPlayerScoreAfterGame = alphaCards.Zip(betaCards, (x, y) => BattleScore(x, y, trump)).Sum();
+      var schuffledDeck = GenerateCards(allCardStrengths, allCardSigns).Match(
+        Left => Console.WriteLine(Left),
+        Right => WinCondition(Right.OrderBy(a => rng.Next())
+                .ToArr()
+                .Select((x, i) => new { Index = i, Value = x })
+                .GroupBy(x => x.Index / 2)
+                .Map(x => BattleScore(x.ElementAt(0).Value, x.ElementAt(1).Value, trump))
+                .Sum()
+                , Right.Length() / 2)
+        );
+    }
 
+    static void WinCondition(int alphaPlayerScoreAfterGame, int playerHandSize)
+    {
       if (alphaPlayerScoreAfterGame > playerHandSize) Console.WriteLine($"Alpha player won with {alphaPlayerScoreAfterGame} points");
       else if (alphaPlayerScoreAfterGame < playerHandSize) Console.WriteLine($"Beta player won with {playerHandSize * 2 - alphaPlayerScoreAfterGame} points");
       else Console.WriteLine("Game was a tie");
@@ -32,15 +40,15 @@ namespace WarCardGame
       return 0;
     }
 
-    record Card(CardStrength strength, CardSign sign);
-
-    enum CardSign
+    static Either<Arr<Card>, string> GenerateCards(Arr<CardStrength> allCardStrengths, Arr<CardSign> allCardSigns)
     {
-      Diamonds,
-      Spades,
-      Clubs,
-      Hearts
+      Arr<Card> deck = allCardStrengths.SelectMany(strength => allCardSigns.Select(sign => new Card(strength, sign)));
+      if (deck.Length() < 1) return "No cards to play with";
+
+      return deck;
     }
+
+    record Card(CardStrength strength, CardSign sign);
 
     enum CardStrength
     {
@@ -59,20 +67,12 @@ namespace WarCardGame
       Ace = 12
     }
 
-    static Arr<Card> GenerateCards()
+    enum CardSign
     {
-      Arr<CardStrength> allCardStrengths = (Arr<CardStrength>)Enum.GetValues(typeof(CardStrength));
-      Arr<CardSign> allCardSigns = (Arr<CardSign>)Enum.GetValues(typeof(CardSign));
-
-      //method syntax
-      Arr<Card> fullDeckMethod = allCardStrengths.SelectMany(strength => allCardSigns.Select(sign => new Card(strength, sign)));
-
-      //query syntax
-      Arr<Card> fullDeckQuery = (from strength in allCardStrengths
-                             from sign in allCardSigns
-                             select new Card(strength, sign));
-
-      return fullDeckMethod;
+      Diamonds,
+      Spades,
+      Clubs,
+      Hearts
     }
 
     static void ShowCardPair(Card x, Card y)
