@@ -1,9 +1,54 @@
 ﻿using System;
 using LanguageExt;
 using System.Linq;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace WarCardGame
 {
+  enum CardStrength
+  {
+    Two = 0,
+    Three = 1,
+    Four = 2,
+    Five = 3,
+    Six = 4,
+    Seven = 5,
+    Eight = 6,
+    Nine = 7,
+    Ten = 8,
+    Jack = 9,
+    Queen = 10,
+    King = 11,
+    Ace = 12
+  }
+
+  public enum CardSign
+  {
+    Diamonds,
+    Spades,
+    Clubs,
+    Hearts
+  }
+
+  public static class Extension
+  {
+    public static void WriteToConsole(this int x)
+    {
+      switch (x)
+      {
+        case > 0:
+          Console.WriteLine("Alpha Player Won ");
+          break;
+        case < 0:
+          Console.WriteLine("Beta Player Won ");
+          break;
+        default:
+          Console.WriteLine("Truce ");
+          break;
+      }
+    }
+  }
   class Program
   {
     static void Main(string[] args)
@@ -11,33 +56,16 @@ namespace WarCardGame
       Random rng = new Random();
       Arr<CardStrength> allCardStrengths = (Arr<CardStrength>)Enum.GetValues(typeof(CardStrength));
       Arr<CardSign> allCardSigns = (Arr<CardSign>)Enum.GetValues(typeof(CardSign));
-      CardSign trump = CardSign.Spades;
 
       var game = GenerateCards(allCardStrengths, allCardSigns).Match(
         Left => Console.WriteLine(Left),
-        Right => WinCondition(Right.OrderBy(a => rng.Next())
+        Right => Right.OrderBy(a => rng.Next())
                 .ToArr()
                 .Select((x, i) => new { Index = i, Value = x })
                 .GroupBy(x => x.Index / 2)
-                .Map(x => BattleScore(x.ElementAt(0).Value, x.ElementAt(1).Value, trump))
-                .Sum()
-                , Right.Length() / 2)
+                .Select(x => x.ElementAt(0).Value.CompareTo(x.ElementAt(1).Value))
+                .Sum().WriteToConsole()
         );
-    }
-
-    static void WinCondition(int alphaPlayerScoreAfterGame, int playerHandSize)
-    {
-      if (alphaPlayerScoreAfterGame > playerHandSize) Console.WriteLine($"Alpha player won with {alphaPlayerScoreAfterGame} points");
-      else if (alphaPlayerScoreAfterGame < playerHandSize) Console.WriteLine($"Beta player won with {playerHandSize * 2 - alphaPlayerScoreAfterGame} points");
-      else Console.WriteLine("Game was a tie");
-    }
-
-    static int BattleScore(Card x, Card y, CardSign trump)
-    {
-      ShowCardPair(x, y);
-      if (x.sign == trump && y.sign != trump || x.strength > y.strength && y.sign != trump) return 2;
-      if (x.strength == y.strength && y.sign != trump) return 1;
-      return 0;
     }
 
     static Either<Arr<Card>, string> GenerateCards(Arr<CardStrength> allCardStrengths, Arr<CardSign> allCardSigns)
@@ -48,36 +76,59 @@ namespace WarCardGame
       return deck;
     }
 
-    record Card(CardStrength strength, CardSign sign);
-
-    enum CardStrength
+    class Card : IComparable<Card>
     {
-      Two = 0,
-      Three = 1,
-      Four = 2,
-      Five = 3,
-      Six = 4,
-      Seven = 5,
-      Eight = 6,
-      Nine = 7,
-      Ten = 8,
-      Jack = 9,
-      Queen = 10,
-      King = 11,
-      Ace = 12
-    }
+      public CardStrength Strength { get; }
+      public CardSign Sign { get; }
+      public Card(CardStrength strength, CardSign sign)
+      {
+        Strength = strength;
+        Sign = sign;
+      }
 
-    enum CardSign
-    {
-      Diamonds,
-      Spades,
-      Clubs,
-      Hearts
+      private class StrengthCompare : IComparer<CardStrength>
+      {
+        int IComparer<CardStrength>.Compare(CardStrength a, CardStrength b)
+        {
+          if (a > b) return 1;
+          if (a < b) return -1;
+          return 0;
+        }
+      }
+
+      private class SignCompare : IComparer<CardSign>
+      {
+        public CardSign Trump { get; }
+        public SignCompare(CardSign trump)
+        {
+          Trump = trump;
+        }
+        int IComparer<CardSign>.Compare(CardSign a, CardSign b)
+        {
+          if (a == Trump && b != Trump) return 1;
+          if (a != Trump && b == Trump) return -1;
+          return 0;
+        }
+      }
+
+      private static IComparer<CardStrength> CompareStrengths() => (IComparer<CardStrength>)new StrengthCompare();
+
+      private static IComparer<CardSign> CompareSigns(CardSign trump) => (IComparer<CardSign>)new SignCompare(trump);
+
+
+      public int CompareTo(Card other)
+      {
+        var comparedSigns = CompareSigns(CardSign.Spades).Compare(this.Sign, other.Sign);
+        if (comparedSigns > 0) return 1;
+        if (comparedSigns < 0) return -1;
+
+        return CompareStrengths().Compare(this.Strength, other.Strength);
+      }
     }
 
     static void ShowCardPair(Card x, Card y)
     {
-      Console.WriteLine($"{x.strength} of {x.sign} vs {y.strength} of {y.sign}");
+      Console.WriteLine($"{x.Strength} of {x.Sign} vs {y.Strength} of {y.Sign}");
     }
   }
 }
