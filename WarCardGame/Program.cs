@@ -78,19 +78,13 @@ namespace WarCardGame
 
       var game = GenerateCards(allCardStrengths, allCardSigns).Match(
         Left => Console.WriteLine(Left),
-        Right => Right.OrderBy(a => rng.Next())
+        Right => Console.WriteLine(Right.OrderBy(a => rng.Next())
                 .ToArr()
                 .Select((x, i) => new { Index = i, Value = x })
                 .GroupBy(x => x.Index / 2)
-                .ToList()
-                .ForEach(x =>
-                {
-                  var item1 = x.ElementAt(0).Value;
-                  var item2 = x.ElementAt(1).Value;
-                  Console.Write($"{item1.strength} {item1.sign} --- {item2.strength} {item2.sign}");
-                  var aftercompare = createCardComparer(CardSign.Diamonds).Compare(item1, item2);
-                  Console.WriteLine($"    {aftercompare}");
-                })
+                .Select(x => createCardComparer(CardSign.Diamonds).Compare(x.ElementAt(0).Value, x.ElementAt(1).Value))
+                .Sum()
+                .ToString())
         );
     }
 
