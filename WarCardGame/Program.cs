@@ -31,12 +31,24 @@ namespace WarCardGame
     Hearts
   }
 
+  public record Card(CardStrength strength, CardSign sign);
+
   public static class Extension
   {
+
     public static IComparer<Wider> contramap<Wider, Narrower>(this IComparer<Narrower> cmp, Func<Wider, Narrower> narrow) => Comparer<Wider>.Create((wider1, wider2) => cmp.Compare(narrow(wider1), narrow(wider2)));
+
     public static IComparer<A> AndThen<A>(this IComparer<A> cmp1, IComparer<A> cmp2)
     {
-      // ¯\_(ツ)_/¯ black magic
+      Comparer<A> comparer = Comparer<A>.Create((a1, a2) =>
+      {
+        if (cmp1.Compare(a1, a2) == 0)
+        {
+          return cmp2.Compare(a1, a2);
+        }
+        return cmp1.Compare(a1, a2);
+      });
+      return comparer;
     }
   }
 
@@ -57,8 +69,8 @@ namespace WarCardGame
 
       IComparer<CardSign> createCardSuitComparer(CardSign trump) => Comparer<CardSign>.Create((s1, s2) =>
       {
-        if (s1 == trump && s2 != trump) return 2;
-        if (s1 != trump && s2 == trump) return -2;
+        if (s1 == trump && s2 != trump) return 1;
+        if (s1 != trump && s2 == trump) return -1;
         return 0;
       });
 
@@ -73,17 +85,14 @@ namespace WarCardGame
                 .ToList()
                 .ForEach(x =>
                 {
-                  Console.Write($"{x.ElementAt(0).Value.strength} {x.ElementAt(0).Value.sign} --- {x.ElementAt(1).Value.strength} {x.ElementAt(1).Value.sign}");
-                  var aftercompare = createCardComparer(CardSign.Diamonds).Compare(x.ElementAt(0).Value, x.ElementAt(1).Value);
+                  var item1 = x.ElementAt(0).Value;
+                  var item2 = x.ElementAt(1).Value;
+                  Console.Write($"{item1.strength} {item1.sign} --- {item2.strength} {item2.sign}");
+                  var aftercompare = createCardComparer(CardSign.Diamonds).Compare(item1, item2);
                   Console.WriteLine($"    {aftercompare}");
                 })
         );
     }
-
-    record Card(CardStrength strength, CardSign sign);
-
-    static CardSign CardToCardSign(Card card) => card.sign;
-    static CardStrength CardToCardStrength(Card card) => card.strength;
 
     static Either<Arr<Card>, string> GenerateCards(Arr<CardStrength> allCardStrengths, Arr<CardSign> allCardSigns)
     {
