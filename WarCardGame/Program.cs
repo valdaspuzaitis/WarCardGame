@@ -81,23 +81,23 @@ namespace WarCardGame
       return deck;
     }
 
-    private static Arr<T> ArrayOfEnumValues<T>() where T : System.Enum => (Arr<T>) Enum.GetValues(typeof(T));
-    
-    IComparer<CardStrength> CardStrengthComparer() => Comparer<CardStrength>.Create((s1, s2) =>
+    private static Arr<T> ArrayOfEnumValues<T>() where T : Enum => (Arr<T>) Enum.GetValues(typeof(T));
+
+    private static IComparer<CardStrength> CardStrengthComparer() => Comparer<CardStrength>.Create((s1, s2) =>
     {
       if (s1 > s2) return 1;
       if (s1 < s2) return -1;
       return 0;
     });
 
-    IComparer<CardSign> CreateCardSignComparer(CardSign trump) => Comparer<CardSign>.Create((s1, s2) =>
+    private static IComparer<CardSign> CreateCardSignComparer(CardSign trump) => Comparer<CardSign>.Create((s1, s2) =>
     {
       if (s1 == trump && s2 != trump) return 1;
       if (s1 != trump && s2 == trump) return -1;
       return 0;
     });
 
-    IComparer<Card> CreateCardComparer(CardSign trump) => CreateCardSignComparer(trump).Contramap((Card c) => c.Sign)
+    private static IComparer<Card> CreateCardComparer(CardSign trump) => CreateCardSignComparer(trump).Contramap((Card c) => c.Sign)
       .AndThen(CardStrengthComparer().Contramap((Card c) => c.Strength));
     
     private static void SowPair((Card, Card) cmp)
