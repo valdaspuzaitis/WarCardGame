@@ -1,8 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using LanguageExt;
 using System.Linq;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace WarCardGame
 {
@@ -31,24 +30,19 @@ namespace WarCardGame
     Hearts
   }
 
-  public record Card(CardStrength strength, CardSign sign);
+  public record Card(CardStrength Strength, CardSign Sign);
 
   public static class Extension
   {
-
-    public static IComparer<Wider> contramap<Wider, Narrower>(this IComparer<Narrower> cmp, Func<Wider, Narrower> narrow) => Comparer<Wider>.Create((wider1, wider2) => cmp.Compare(narrow(wider1), narrow(wider2)));
+    public static void SowResult(this int x) => Console.WriteLine(x);
+    
+    public static IComparer<TWider> Contramap<TWider, TNarrower>(this IComparer<TNarrower> cmp,
+      Func<TWider, TNarrower> narrow) =>
+      Comparer<TWider>.Create((wider1, wider2) => cmp.Compare(narrow(wider1), narrow(wider2)));
 
     public static IComparer<A> AndThen<A>(this IComparer<A> cmp1, IComparer<A> cmp2)
     {
-      Comparer<A> comparer = Comparer<A>.Create((a1, a2) =>
-      {
-        if (cmp1.Compare(a1, a2) == 0)
-        {
-          return cmp2.Compare(a1, a2);
-        }
-        return cmp1.Compare(a1, a2);
-      });
-      return comparer;
+      return Comparer<A>.Create((a1, a2) => cmp1.Compare(a1, a2) == 0 ? cmp2.Compare(a1, a2) : cmp1.Compare(a1, a2));
     }
   }
 
@@ -56,50 +50,59 @@ namespace WarCardGame
   {
     static void Main(string[] args)
     {
-      Random rng = new Random();
-      Arr<CardStrength> allCardStrengths = (Arr<CardStrength>)Enum.GetValues(typeof(CardStrength));
-      Arr<CardSign> allCardSigns = (Arr<CardSign>)Enum.GetValues(typeof(CardSign));
-
-      IComparer<CardStrength> cardStrengthComparer() => Comparer<CardStrength>.Create((s1, s2) =>
-      {
-        if (s1 > s2) return 1;
-        if (s1 < s2) return -1;
-        return 0;
-      });
-
-      IComparer<CardSign> createCardSuitComparer(CardSign trump) => Comparer<CardSign>.Create((s1, s2) =>
-      {
-        if (s1 == trump && s2 != trump) return 1;
-        if (s1 != trump && s2 == trump) return -1;
-        return 0;
-      });
-
-      IComparer<Card> createCardComparer(CardSign trump) => createCardSuitComparer(trump).contramap((Card c) => c.sign).AndThen(cardStrengthComparer().contramap((Card c) => c.strength));
+      var rng = new Random();
+      var allCardStrengths = ArrayOfEnumValues<CardStrength>();
+      var allCardSigns = ArrayOfEnumValues<CardSign>();
+      const CardSign trumpSign = CardSign.Spades;
 
       var game = GenerateCards(allCardStrengths, allCardSigns).Match(
-        Left => Console.WriteLine(Left),
-        Right => Right.OrderBy(a => rng.Next())
-                .ToArr()
-                .Select((x, i) => new { Index = i, Value = x })
-                .GroupBy(x => x.Index / 2)
-                .ToList()
-                .ForEach(x =>
-                {
-                  var item1 = x.ElementAt(0).Value;
-                  var item2 = x.ElementAt(1).Value;
-                  Console.Write($"{item1.strength} {item1.sign} --- {item2.strength} {item2.sign}");
-                  var aftercompare = createCardComparer(CardSign.Diamonds).Compare(item1, item2);
-                  Console.WriteLine($"    {aftercompare}");
-                })
-        );
+        right => right.OrderBy((a) => rng.Next())
+          .Select((x, i) => new {Index = i, Value = x})
+          .GroupBy(x => x.Index / 2)
+          .Select(x => (x.ElementAt(0).Value, x.ElementAt(1).Value))
+          .Select(x =>
+          {
+            var compareResult = CreateCardComparer(trumpSign).Compare(x.Item1, x.Item2);
+            SowPair(x);
+            Console.WriteLine($" --- {compareResult}");
+            return compareResult;
+          })
+          .Sum()
+          .SowResult(),
+        left => Console.WriteLine(left)
+      );
     }
 
-    static Either<Arr<Card>, string> GenerateCards(Arr<CardStrength> allCardStrengths, Arr<CardSign> allCardSigns)
+    private static Either<string, Arr<Card>> GenerateCards(Arr<CardStrength> allCardStrengths,
+      Arr<CardSign> allCardSigns)
     {
-      Arr<Card> deck = allCardStrengths.SelectMany(strength => allCardSigns.Select(sign => new Card(strength, sign)));
-      if (deck.Length() < 1) return "No cards to play with";
-
+      var deck = allCardStrengths.SelectMany(strength => allCardSigns.Select(sign => new Card(strength, sign)));
+      if (deck.Count < 1) return "No cards to play with";
       return deck;
+    }
+
+    private static Arr<T> ArrayOfEnumValues<T>() where T : System.Enum => (Arr<T>) Enum.GetValues(typeof(T));
+    
+    IComparer<CardStrength> CardStrengthComparer() => Comparer<CardStrength>.Create((s1, s2) =>
+    {
+      if (s1 > s2) return 1;
+      if (s1 < s2) return -1;
+      return 0;
+    });
+
+    IComparer<CardSign> CreateCardSuitComparer(CardSign trump) => Comparer<CardSign>.Create((s1, s2) =>
+    {
+      if (s1 == trump && s2 != trump) return 1;
+      if (s1 != trump && s2 == trump) return -1;
+      return 0;
+    });
+
+    IComparer<Card> CreateCardComparer(CardSign trump) => CreateCardSuitComparer(trump).Contramap((Card c) => c.Sign)
+      .AndThen(CardStrengthComparer().Contramap((Card c) => c.Strength));
+    
+    private static void SowPair((Card, Card) cmp)
+    {
+      Console.Write($"{cmp.Item1.Strength} of {cmp.Item1.Sign} vs {cmp.Item2.Strength} of {cmp.Item2.Sign}" );
     }
   }
 }
