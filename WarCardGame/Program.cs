@@ -90,14 +90,14 @@ namespace WarCardGame
       return 0;
     });
 
-    IComparer<CardSign> CreateCardSuitComparer(CardSign trump) => Comparer<CardSign>.Create((s1, s2) =>
+    IComparer<CardSign> CreateCardSignComparer(CardSign trump) => Comparer<CardSign>.Create((s1, s2) =>
     {
       if (s1 == trump && s2 != trump) return 1;
       if (s1 != trump && s2 == trump) return -1;
       return 0;
     });
 
-    IComparer<Card> CreateCardComparer(CardSign trump) => CreateCardSuitComparer(trump).Contramap((Card c) => c.Sign)
+    IComparer<Card> CreateCardComparer(CardSign trump) => CreateCardSignComparer(trump).Contramap((Card c) => c.Sign)
       .AndThen(CardStrengthComparer().Contramap((Card c) => c.Strength));
     
     private static void SowPair((Card, Card) cmp)
