@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using LanguageExt;
 using System.Linq;
+using LanguageExt.Sys;
+using LanguageExt.Sys.Live;
+using LanguageExt.Sys.Traits;
+using static LanguageExt.Prelude;
 
 namespace WarCardGame
 {
@@ -31,7 +35,7 @@ namespace WarCardGame
   }
 
   public record Card(CardStrength Strength, CardSign Sign);
-
+  public delegate T IO<out T>();
   public static class Extension
   {
     public static void SowResult(this int x) => Console.WriteLine(x);
@@ -50,13 +54,20 @@ namespace WarCardGame
   {
     static void Main(string[] args)
     {
-      var rng = new Random();
+      static IO<int> GetSomeRandom() => () => new Random(Guid.NewGuid().GetHashCode()).Next();
+
+      var myRandom = GetSomeRandom();
+
+      var someRandomNumber = Prelude.random(Guid.NewGuid().GetHashCode());
+      
+      var shitGoesDown = Prelude.Eff(() => new Random());
+      
       var allCardStrengths = ArrayOfEnumValues<CardStrength>();
       var allCardSigns = ArrayOfEnumValues<CardSign>();
       const CardSign trumpSign = CardSign.Spades;
 
       var game = GenerateCards(allCardStrengths, allCardSigns).Match(
-        right => right.OrderBy((a) => rng.Next())
+        right => right.OrderBy(a => someRandomNumber)
           .Select((x, i) => new {Index = i, Value = x})
           .GroupBy(x => x.Index / 2)
           .Select(x => (x.ElementAt(0).Value, x.ElementAt(1).Value))
@@ -72,7 +83,7 @@ namespace WarCardGame
         left => Console.WriteLine(left)
       );
     }
-
+    
     private static Either<string, Arr<Card>> GenerateCards(Arr<CardStrength> allCardStrengths,
       Arr<CardSign> allCardSigns)
     {
